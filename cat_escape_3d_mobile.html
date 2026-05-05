@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Кот Сбежал 3D — Третье Лицо</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;touch-action:none;font-family:'Courier New',monospace}
+#c{position:fixed;inset:0;display:block;width:100%!important;height:100%!important}
+
+#loading{position:fixed;inset:0;background:#07050F;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:200}
+#loading h2{color:#E8A830;font-size:15px;letter-spacing:3px}
+#lstep{color:rgba(168,130,60,.8);font-size:10px;letter-spacing:1px;min-height:14px;text-align:center}
+#lbar{width:240px;height:5px;background:#1A1020;border-radius:3px;overflow:hidden}
+#lfill{height:100%;width:0%;background:linear-gradient(90deg,#E8843A,#FFD700);border-radius:3px;transition:width .3s}
+
+#rlabel{position:fixed;top:env(safe-area-inset-top,10px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#E8A830;font-size:11px;padding:5px 16px;border-radius:20px;border:1px solid #5A3A08;letter-spacing:1px;z-index:20;pointer-events:none;white-space:nowrap;display:none}
+#angerbar{position:fixed;top:env(safe-area-inset-top,10px);right:12px;display:none;flex-direction:column;align-items:flex-end;gap:3px;z-index:20;pointer-events:none}
+#angerbar label{font-size:8px;color:rgba(255,120,0,.7);letter-spacing:.5px}
+#atrack{width:72px;height:7px;background:rgba(0,0,0,.5);border-radius:4px;border:1px solid rgba(255,120,0,.2);overflow:hidden}
+#afill{height:100%;width:0%;background:linear-gradient(90deg,#ff8800,#ff2200);border-radius:4px;transition:width .1s}
+#hpbar{position:fixed;top:env(safe-area-inset-top,10px);left:12px;display:none;flex-direction:row;gap:4px;z-index:20;pointer-events:none;padding-top:2px}
+.heart{font-size:18px;transition:opacity .3s}
+.heart.lost{opacity:.18;filter:grayscale(1)}
+#msg{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:rgba(8,5,2,.97);border:1px solid #7A5A18;color:#E8D098;font-size:12px;padding:12px 18px;border-radius:10px;max-width:88vw;text-align:center;line-height:1.8;display:none;z-index:30;pointer-events:none}
+#beatflash{position:fixed;inset:0;pointer-events:none;z-index:18;transition:background .15s}
+#beatflash.hit{background:rgba(255,60,0,.5)}
+#minimap{position:fixed;bottom:78px;right:14px;width:88px;height:88px;background:rgba(0,0,0,.7);border:1px solid rgba(255,180,60,.2);border-radius:8px;z-index:20;overflow:hidden;display:none}
+#invbar{position:fixed;bottom:0;left:0;width:100%;height:68px;background:rgba(6,4,2,.92);border-top:1px solid #3A2008;display:none;align-items:center;padding:0 10px;gap:7px;z-index:20}
+#invlbl{color:#4A2C08;font-size:9px;white-space:nowrap}
+.is{width:44px;height:44px;border:1px solid #2A1408;border-radius:8px;background:rgba(30,18,5,.7);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.is.has{border-color:#B08010;background:rgba(100,65,8,.3)}
+#btns{position:fixed;right:14px;bottom:86px;display:none;flex-direction:column;gap:8px;z-index:25;align-items:flex-end}
+#actbtn{width:70px;height:70px;background:rgba(200,160,20,.15);border:2px solid rgba(232,168,48,.65);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:#FFD700;gap:2px;pointer-events:all;cursor:pointer}
+#actbtn span{font-size:8px;text-align:center;max-width:56px;line-height:1.3;padding:0 3px}
+#actbtn.vis{display:flex}
+#actbtn.dm{border-color:rgba(255,80,0,.9)!important;color:#ff8844!important;background:rgba(180,40,0,.2)!important}
+#teasebtn{width:56px;height:56px;background:rgba(255,80,0,.12);border:2px solid rgba(255,80,0,.5);border-radius:50%;display:none;flex-direction:column;align-items:center;justify-content:center;font-size:18px;color:#ff8844;gap:1px;pointer-events:all;cursor:pointer}
+#teasebtn.vis{display:flex}
+#joypad{position:fixed;left:16px;bottom:86px;width:118px;height:118px;z-index:25;pointer-events:all;display:none}
+#joy-base{width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.1);position:absolute;top:0;left:0}
+#joy-knob{width:46px;height:46px;border-radius:50%;background:rgba(255,200,60,.28);border:2px solid rgba(255,200,60,.5);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+#lookzone{position:fixed;right:0;top:0;width:55%;height:calc(100% - 68px);z-index:15;pointer-events:none;display:none}
+#start{position:fixed;inset:0;background:linear-gradient(160deg,#0A0704,#1A0E06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;z-index:300;padding:20px}
+#start h1{color:#E8A830;font-size:clamp(15px,5vw,24px);letter-spacing:3px;text-align:center;line-height:1.7}
+.ssub{font-size:11px;line-height:1.9;text-align:center;color:rgba(200,175,130,.7);max-width:310px}
+.warn-box{border:1px solid rgba(255,100,0,.28);border-radius:8px;padding:9px 14px;font-size:10px;color:rgba(255,140,60,.85);text-align:center;line-height:1.9;max-width:290px}
+.sbtn{background:#3E2308;border:1.5px solid #E8A830;color:#E8A830;font-family:'Courier New',monospace;font-size:13px;padding:13px 32px;border-radius:25px;cursor:pointer;letter-spacing:2px;-webkit-appearance:none;width:210px}
+.sbtn:active{background:#6A3C10}
+#win,#gameover{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:400;padding:20px}
+#win{background:rgba(2,10,3,.98)}
+#win h1{color:#5EE86A;font-size:clamp(20px,6vw,28px);letter-spacing:3px}
+#win p{color:#A8E8B0;font-size:12px;line-height:2.2;text-align:center}
+#gameover{background:rgba(20,8,0,.98)}
+#gameover h1{color:#ff6622;font-size:clamp(16px,5vw,22px);letter-spacing:2px;text-align:center;line-height:1.7}
+#gameover p{color:rgba(255,200,160,.8);font-size:11px;line-height:2;text-align:center}
+.gbtn{background:#3A1208;border:1.5px solid #ff6622;color:#ff6622;font-family:'Courier New',monospace;font-size:12px;padding:13px 32px;border-radius:25px;cursor:pointer;letter-spacing:2px;-webkit-appearance:none;width:210px}
+.gbtn:active{background:#5A2010}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="loading">
+  <div style="font-size:52px">🐱👴🏠</div>
+  <h2>КОТ СБЕЖАЛ 3D</h2>
+  <div id="lstep">Ожидание...</div>
+  <div id="lbar"><div id="lfill"></div></div>
+  <div style="color:rgba(200,170,100,.4);font-size:9px">Загружается настоящий дом · вид от третьего лица</div>
+</div>
+
+<div id="beatflash"></div>
+<div id="rlabel">🐱 Найди выход!</div>
+<div id="hpbar"><div class="heart" id="h0">❤️</div><div class="heart" id="h1">❤️</div><div class="heart" id="h2">❤️</div></div>
+<div id="angerbar"><label>😡 ЗЛОСТЬ</label><div id="atrack"><div id="afill"></div></div></div>
+<div id="msg"></div>
+<div id="minimap"><canvas id="mmc" width="88" height="88"></canvas></div>
+<div id="invbar">
+  <span id="invlbl">👜</span>
+  <div class="is" id="i0"></div><div class="is" id="i1"></div>
+  <div class="is" id="i2"></div><div class="is" id="i3"></div>
+</div>
+<div id="btns">
+  <div id="actbtn" onclick="doInteract()">[ E ]<span id="actlbl">Действие</span></div>
+  <div id="teasebtn" onclick="doTease()">😝</div>
+</div>
+<div id="joypad"><div id="joy-base"></div><div id="joy-knob"></div></div>
+<div id="lookzone"></div>
+
+<div id="start">
+  <div style="font-size:60px;line-height:1.1">🐱👴</div>
+  <h1>КОТ СБЕЖАЛ<br>ВИД СЗАДИ 3D</h1>
+  <p class="ssub">Кот заперт в настоящем доме.<br>Играешь от третьего лица — видишь всего кота!<br>Хозяин разозлится и погонится за тобой!</p>
+  <div class="warn-box">😡 Дразни хозяина на свой страх и риск!<br>3 удара = конец игры 💥<br>💊 Найди успокоительное чтобы его утихомирить</div>
+  <p class="ssub" style="color:rgba(130,105,70,.4);font-size:10px">🕹 Джойстик — движение · Правая зона — камера<br>E — взаимодействие · 😝 — дразнить · Q (ПК)</p>
+  <button class="sbtn" onclick="startGame()">▶ &nbsp;ИГРАТЬ</button>
+</div>
+
+<div id="win">
+  <div style="font-size:64px">🐱🌙</div>
+  <h1>СБЕЖАЛ!</h1>
+  <p>Кот удрал от хозяина!<br>🌙 Гуляет под звёздами! ✨</p>
+  <button class="sbtn" onclick="location.reload()">Играть снова</button>
+</div>
+
+<div id="gameover">
+  <div style="font-size:64px">👴💥🐱</div>
+  <h1 id="goTitle">ХОЗЯИН ПОЙМАЛ КОТА!</h1>
+  <p id="goText">Не надо было его дразнить... 😅</p>
+  <button class="gbtn" onclick="location.reload()">Попробовать снова</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+
+// ═══════════════════════════════════
+//  GLOBALS
+// ═══════════════════════════════════
+var renderer=null, scene=null, camera=null, raycaster=null, clock=null;
+var engineReady=false, gameRunning=false;
+
+// Third-person camera state
+var camYaw=0, camPitch=0.35;        // orbit angles around cat
+var CAM_DIST=4.5, CAM_HEIGHT=1.8;   // follow distance & height offset
+var camTarget=new THREE.Vector3();  // smoothed look target
+
+// Joystick / look input
+var joyVec={x:0,y:0};
+var joyTouchId=null, joyOrigin={x:0,y:0};
+var lookTouchId=null, lookLast={x:0,y:0};
+
+// Cat (player)
+var catGroup=null;
+var catPos=new THREE.Vector3();      // world position
+var catFaceYaw=0;                    // direction cat is facing
+var catWalk=0;                       // walk cycle
+var catIsMoving=false;
+var catTailT=0;
+var catLegFL=null, catLegFR=null, catLegBL=null, catLegBR=null;
+var catTailGrp=null, catTailBone=null;
+var catEarL=null, catEarR=null;
+
+// Owner
+var ownerGroup=null;
+var ownerPos=new THREE.Vector3();
+var ownerHomePos=new THREE.Vector3();
+var ownerState='idle';
+var ownerAnger=0, ownerChasing=false, ownerSpeed=1.2;
+var ownerPatrol=[], ownerPatrolIdx=0, ownerPatrolT=0;
+var ownerArmL=null, ownerArmR=null;
+var ownerEyeL=null, ownerEyeR=null, ownerAngerLight=null;
+var hitCooldown=0, playerHP=3, teaseCount=0;
+var OWNER_CATCH=1.4;
+
+var interactables=[], wallMeshes=[], dynObjs=[];
+var targetObj=null;
+var FB={minX:-10,maxX:10,minZ:-10,maxZ:10,cx:0,cz:0,rw:8,rh:8};
+var mapScale=1,mapOX=0,mapOZ=0;
+var G={inv:[],emoji:{},found:{}};
+var PLAYER_H=0, MOVE_SPEED=5.0, SENS=0.006, INTERACT_D=3.5;
+var _cRay=null, msgTimer=null;
+
+var TEASES=['😝 КОТ: "Эй толстяк, лови меня!"','😝 КОТ: "Мяу! Ты слишком медленный!"','😝 КОТ: "Твой дом теперь МОЙ!"','😝 КОТ: "Бе-бе-бе!"','😝 КОТ: "Не догонишь!"'];
+var ANGRY_P=['👴: "ЧТО?! СТОЯТЬ!!!"','👴: "КОТ!!! ПОЖАЛЕЕШЬ!!!"','👴: "ВОТ Я ТЕБЯ!!!"'];
+var HIT_P=['👴💥 "ВОТ ТЕБЕ!!!"','👴💥 "ПОЛУЧАЙ!!!"','👴💥 "Я ПРЕДУПРЕЖДАЛ!"'];
+
+// ═══════════════════════════════════
+//  UI
+// ═══════════════════════════════════
+function showMsg(t,d){d=d||3200;var el=document.getElementById('msg');el.textContent=t;el.style.display='block';clearTimeout(msgTimer);msgTimer=setTimeout(function(){el.style.display='none';},d);}
+function hasItem(n){return G.inv.indexOf(n)>=0;}
+function addItem(e,n){if(G.inv.length>=4){showMsg('Инвентарь полон!');return false;}if(hasItem(n))return false;G.inv.push(n);G.emoji[n]=e;redrawInv();return true;}
+function removeItem(n){var i=G.inv.indexOf(n);if(i>=0)G.inv.splice(i,1);redrawInv();}
+function redrawInv(){for(var i=0;i<4;i++){var s=document.getElementById('i'+i);s.textContent=G.inv[i]?G.emoji[G.inv[i]]:'';s.className='is'+(G.inv[i]?' has':'');}}
+function setStep(t,p){document.getElementById('lstep').textContent=t;document.getElementById('lfill').style.width=p+'%';}
+function updateHP(){for(var i=0;i<3;i++)document.getElementById('h'+i).className='heart'+(i>=playerHP?' lost':'');}
+function flashHit(){var el=document.getElementById('beatflash');el.classList.add('hit');setTimeout(function(){el.classList.remove('hit');},250);}
+
+// ═══════════════════════════════════
+//  COLLISION
+// ═══════════════════════════════════
+function initColRay(){_cRay=new THREE.Raycaster();_cRay.near=0;_cRay.far=0.45;}
+function canMove(fx,fz,dx,dz){
+  if(!_cRay||wallMeshes.length===0)return true;
+  var len=Math.sqrt(dx*dx+dz*dz);if(len<.001)return true;
+  _cRay.set(new THREE.Vector3(fx,.8,fz),new THREE.Vector3(dx/len,0,dz/len));
+  _cRay.far=0.45;
+  return _cRay.intersectObjects(wallMeshes,false).length===0;
+}
+
+// ═══════════════════════════════════
+//  MOVE CAT (not camera – cat is 3D object)
+// ═══════════════════════════════════
+function tryMove(dt){
+  var spd=MOVE_SPEED*dt;
+  var jx=joyVec.x, jz=joyVec.y;
+  catIsMoving=Math.abs(jx)>.08||Math.abs(jz)>.08;
+  if(!catIsMoving)return;
+  var len=Math.sqrt(jx*jx+jz*jz);jx/=len;jz/=len;
+  // Move in camera-relative direction
+  var cos=Math.cos(camYaw), sin=Math.sin(camYaw);
+  var wx=jx*cos+jz*sin, wz=-jx*sin+jz*cos;
+  var nx=catPos.x+wx*spd, nz=catPos.z+wz*spd;
+  nx=Math.max(FB.minX+.45,Math.min(FB.maxX-.45,nx));
+  nz=Math.max(FB.minZ+.45,Math.min(FB.maxZ-.45,nz));
+  if(canMove(catPos.x,catPos.z,wx,wz)){catPos.x=nx;catPos.z=nz;}
+  else if(canMove(catPos.x,catPos.z,wx,0)){catPos.x=nx;}
+  else if(canMove(catPos.x,catPos.z,0,wz)){catPos.z=nz;}
+  catFaceYaw=Math.atan2(wx,wz)+Math.PI;
+}
+
+// ═══════════════════════════════════
+//  BUILD CAT 3D MODEL
+// ═══════════════════════════════════
+function buildCat(x,z){
+  var g=new THREE.Group();
+  var orange =new THREE.MeshStandardMaterial({color:0xE8843A,roughness:.85,metalness:.0});
+  var orangeD=new THREE.MeshStandardMaterial({color:0xC06018,roughness:.85});
+  var white  =new THREE.MeshStandardMaterial({color:0xF5F0E8,roughness:.9});
+  var pink   =new THREE.MeshStandardMaterial({color:0xE8A0A8,roughness:.9});
+  var darkE  =new THREE.MeshStandardMaterial({color:0x1A1008,roughness:.6});
+  var noseM  =new THREE.MeshStandardMaterial({color:0xE87A8A,roughness:.8});
+
+  function add(geo,mat,px,py,pz,sx,sy,sz,rx,ry,rz){
+    sx=sx||1;sy=sy||1;sz=sz||1;rx=rx||0;ry=ry||0;rz=rz||0;
+    var m=new THREE.Mesh(geo,mat);
+    m.position.set(px,py,pz);m.scale.set(sx,sy,sz);
+    m.rotation.set(rx,ry,rz);m.castShadow=true;g.add(m);return m;
+  }
+
+  // ── BODY ──
+  var body=add(new THREE.SphereGeometry(.28,14,10),orange,0,.28,0,1,.85,1.2);
+  // White belly
+  add(new THREE.SphereGeometry(.22,12,8),white,0,.26,.12,1,.65,1);
+  // Back stripe
+  add(new THREE.BoxGeometry(.06,.06,.55),orangeD,0,.38,0);
+
+  // ── LEGS ──
+  function makeLeg(px,pz){
+    var legG=new THREE.Group();
+    var upper=new THREE.Mesh(new THREE.CylinderGeometry(.065,.055,.18,8),orange);
+    upper.position.y=-.09;upper.castShadow=true;legG.add(upper);
+    var lower=new THREE.Mesh(new THREE.CylinderGeometry(.055,.048,.16,8),orange);
+    lower.position.y=-.26;lower.castShadow=true;legG.add(lower);
+    var paw=new THREE.Mesh(new THREE.SphereGeometry(.07,10,7),white);
+    paw.scale.set(1,.55,1.2);paw.position.set(0,-.34,.02);paw.castShadow=true;legG.add(paw);
+    // Paw pads
+    [[0,-.36,.08],[-.04,-.35,.1],[.04,-.35,.1]].forEach(function(p){
+      var tp=new THREE.Mesh(new THREE.SphereGeometry(.02,6,5),pink);tp.position.set(p[0],p[1],p[2]);legG.add(tp);
+    });
+    legG.position.set(px,0,pz);g.add(legG);return legG;
+  }
+  catLegFL=makeLeg(-.14,-.18);
+  catLegFR=makeLeg( .14,-.18);
+  catLegBL=makeLeg(-.13, .16);
+  catLegBR=makeLeg( .13, .16);
+
+  // ── HEAD ──
+  var head=add(new THREE.SphereGeometry(.22,14,10),orange,0,.62,-.04,1.05,1,.98);
+  // Forehead
+  add(new THREE.SphereGeometry(.14,10,8),orangeD,0,.72,-.04,.9,.5,.9);
+  // Cheeks
+  add(new THREE.SphereGeometry(.11,10,8),orange,-.15,.6,.06,1,.8,.9);
+  add(new THREE.SphereGeometry(.11,10,8),orange, .15,.6,.06,1,.8,.9);
+  // Snout white
+  add(new THREE.SphereGeometry(.1,10,8),white,0,.56,.14,1.1,.65,1);
+  // Nose
+  add(new THREE.SphereGeometry(.028,8,6),noseM,0,.58,.22);
+  // Eyes
+  add(new THREE.SphereGeometry(.038,10,8),darkE,-.09,.64,.18);
+  add(new THREE.SphereGeometry(.038,10,8),darkE, .09,.64,.18);
+  // Eye pupils
+  add(new THREE.SphereGeometry(.02,8,6),new THREE.MeshStandardMaterial({color:0x080808}),-.09,.64,.2);
+  add(new THREE.SphereGeometry(.02,8,6),new THREE.MeshStandardMaterial({color:0x080808}), .09,.64,.2);
+  // Eye whites
+  add(new THREE.SphereGeometry(.013,6,5),new THREE.MeshStandardMaterial({color:0xFFFFFF}),-.075,.655,.21);
+  add(new THREE.SphereGeometry(.013,6,5),new THREE.MeshStandardMaterial({color:0xFFFFFF}), .075,.655,.21);
+  // Mouth
+  add(new THREE.SphereGeometry(.015,6,5),new THREE.MeshStandardMaterial({color:0xC06060}),-.03,.535,.22);
+  add(new THREE.SphereGeometry(.015,6,5),new THREE.MeshStandardMaterial({color:0xC06060}), .03,.535,.22);
+
+  // ── EARS ──
+  catEarL=new THREE.Group();
+  var eInner=new THREE.Mesh(new THREE.ConeGeometry(.055,.1,5),pink);eInner.castShadow=true;catEarL.add(eInner);
+  var eOuter=new THREE.Mesh(new THREE.ConeGeometry(.07,.13,5),orange);eOuter.position.y=.01;eOuter.castShadow=true;catEarL.add(eOuter);
+  catEarL.position.set(-.12,.8,-.06);catEarL.rotation.set(-.1,0,-.25);g.add(catEarL);
+
+  catEarR=new THREE.Group();
+  var eInnerR=new THREE.Mesh(new THREE.ConeGeometry(.055,.1,5),pink);eInnerR.castShadow=true;catEarR.add(eInnerR);
+  var eOuterR=new THREE.Mesh(new THREE.ConeGeometry(.07,.13,5),orange);eOuterR.position.y=.01;eOuterR.castShadow=true;catEarR.add(eOuterR);
+  catEarR.position.set(.12,.8,-.06);catEarR.rotation.set(-.1,0,.25);g.add(catEarR);
+
+  // ── TAIL ──
+  catTailGrp=new THREE.Group();
+  catTailGrp.position.set(0,.28,.26);
+  var tailSeg1=new THREE.Mesh(new THREE.CylinderGeometry(.045,.06,.25,8),orange);
+  tailSeg1.position.y=.12;tailSeg1.rotation.x=-.5;tailSeg1.castShadow=true;catTailGrp.add(tailSeg1);
+  var tailSeg2=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.22,8),orange);
+  tailSeg2.position.set(0,.3,-.18);tailSeg2.rotation.x=-.9;tailSeg2.castShadow=true;catTailGrp.add(tailSeg2);
+  var tailTip=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6),white);
+  tailTip.position.set(0,.38,-.38);tailTip.castShadow=true;catTailGrp.add(tailTip);
+  g.add(catTailGrp);
+
+  // ── WHISKERS ──
+  var wMat=new THREE.LineBasicMaterial({color:0xF0E8D8,transparent:true,opacity:.65});
+  function wsk(x,y,z,rx,ry){
+    var pts=[new THREE.Vector3(0,0,0),new THREE.Vector3(x,y,z)];
+    var l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),wMat);
+    l.position.set(0,.56,.15);l.rotation.set(rx||0,ry||0,0);g.add(l);
+  }
+  wsk(-.32,.02,.02,0,.1);wsk(-.32,-.02,.02,0,.06);
+  wsk( .32,.02,.02,0,-.1);wsk( .32,-.02,.02,0,-.06);
+
+  // Shadow blob
+  var shadow=new THREE.Mesh(
+    new THREE.CircleGeometry(.28,12),
+    new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28})
+  );
+  shadow.rotation.x=-Math.PI/2;shadow.position.y=.01;g.add(shadow);
+
+  g.position.set(x,0,z);
+  scene.add(g);
+  catGroup=g;
+  catPos.set(x,0,z);
+}
+
+// ═══════════════════════════════════
+//  ANIMATE CAT
+// ═══════════════════════════════════
+function updateCat(dt){
+  if(!catGroup)return;
+  catWalk+=dt*(catIsMoving?9:1.5);
+  catTailT+=dt;
+
+  // Position
+  catGroup.position.x=catPos.x;
+  catGroup.position.z=catPos.z;
+  catGroup.position.y=catIsMoving?Math.abs(Math.sin(catWalk))*.04:Math.sin(catWalk*.5)*.008;
+
+  // Face direction (smooth turn)
+  var currentY=catGroup.rotation.y;
+  var diff=catFaceYaw-currentY;
+  while(diff>Math.PI)diff-=Math.PI*2;
+  while(diff<-Math.PI)diff+=Math.PI*2;
+  catGroup.rotation.y+=diff*.18;
+
+  // Leg walk
+  if(catIsMoving){
+    var s=Math.sin(catWalk);
+    if(catLegFL)catLegFL.rotation.x= s*.4;
+    if(catLegFR)catLegFR.rotation.x=-s*.4;
+    if(catLegBL)catLegBL.rotation.x=-s*.4;
+    if(catLegBR)catLegBR.rotation.x= s*.4;
+  } else {
+    [catLegFL,catLegFR,catLegBL,catLegBR].forEach(function(l){if(l)l.rotation.x*=.85;});
+  }
+
+  // Tail wag
+  if(catTailGrp){
+    catTailGrp.rotation.y=Math.sin(catTailT*2.5)*(catIsMoving?.5:.3);
+    catTailGrp.rotation.x=Math.sin(catTailT*1.8)*.12-.1;
+  }
+
+  // Ear flick
+  if(catEarL&&catEarR){
+    var ef=Math.sin(catTailT*.7)*.06;
+    catEarL.rotation.z=-.25+ef;catEarR.rotation.z=.25-ef;
+  }
+}
+
+// ═══════════════════════════════════
+//  3RD PERSON CAMERA UPDATE
+// ═══════════════════════════════════
+function updateCamera(){
+  if(!catGroup||!camera)return;
+  // Camera orbits around cat
+  var cx=catPos.x+Math.sin(camYaw)*Math.sin(camPitch)*CAM_DIST;
+  var cy=Math.cos(camPitch)*CAM_DIST+0.8;
+  var cz=catPos.z+Math.cos(camYaw)*Math.sin(camPitch)*CAM_DIST;
+
+  // Clamp cam to floor bounds
+  cx=Math.max(FB.minX+.3,Math.min(FB.maxX-.3,cx));
+  cz=Math.max(FB.minZ+.3,Math.min(FB.maxZ-.3,cz));
+
+  camera.position.set(cx,Math.max(.6,cy),cz);
+
+  // Smooth look target (cat head level)
+  var lookAt=new THREE.Vector3(catPos.x,0.55,catPos.z);
+  catTarget.lerp(lookAt,.12);
+  camera.lookAt(catTarget);
+}
+
+// ═══════════════════════════════════
+//  FAT MAN OWNER
+// ═══════════════════════════════════
+function makeFatMan(x,z){
+  var g=new THREE.Group();
+  var skin=new THREE.MeshStandardMaterial({color:0xD4A068,roughness:.8});
+  var suit=new THREE.MeshStandardMaterial({color:0x1E2050,roughness:.9});
+  var shirt=new THREE.MeshStandardMaterial({color:0xF5F0E8,roughness:.95});
+  var tie=new THREE.MeshStandardMaterial({color:0xBB1010,roughness:.8});
+  var dk=new THREE.MeshStandardMaterial({color:0x080808});
+  var brn=new THREE.MeshStandardMaterial({color:0x1A0E04});
+  var shoe=new THREE.MeshStandardMaterial({color:0x0A0808});
+
+  function m(geo,mat,px,py,pz,sx,sy,sz,rx,rz){
+    sx=sx||1;sy=sy||1;sz=sz||1;rx=rx||0;rz=rz||0;
+    var mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(px,py,pz);mesh.scale.set(sx,sy,sz);
+    mesh.rotation.x=rx;mesh.rotation.z=rz;mesh.castShadow=true;g.add(mesh);return mesh;
+  }
+  m(new THREE.SphereGeometry(.62,14,10),suit,0,.72,0,1,1.1,.95);
+  m(new THREE.SphereGeometry(.58,12,9),shirt,0,.58,0,1,.65,.85);
+  m(new THREE.BoxGeometry(.22,.52,.14),shirt,0,.72,.56);
+  m(new THREE.BoxGeometry(.09,.44,.1),tie,0,.70,.64,.08);
+  m(new THREE.BoxGeometry(.12,.1,.12),tie,0,.94,.58);
+  m(new THREE.BoxGeometry(1.1,.1,.15),new THREE.MeshStandardMaterial({color:0x2A1808}),0,.4,.45);
+  m(new THREE.SphereGeometry(.42,14,10),skin,0,1.55,0,1.08,1.0,1.05);
+  m(new THREE.SphereGeometry(.18,10,8),new THREE.MeshStandardMaterial({color:0xE0A070}),-.3,1.5,.28,1,.75,1);
+  m(new THREE.SphereGeometry(.18,10,8),new THREE.MeshStandardMaterial({color:0xE0A070}), .3,1.5,.28,1,.75,1);
+  m(new THREE.SphereGeometry(.22,10,8),skin,0,1.22,.1,1.2,.55,1);
+  m(new THREE.SphereGeometry(.3,10,8),skin,0,1.18,.22,.9,.48,.8);
+  m(new THREE.SphereGeometry(.40,12,8),brn,0,1.82,0,1.08,.26,1.08);
+  m(new THREE.SphereGeometry(.32,10,6),skin,0,1.92,0,.95,.1,.95);
+  m(new THREE.SphereGeometry(.14,10,8),skin,-.44,1.54,-.02,1,1,.7);
+  m(new THREE.SphereGeometry(.14,10,8),skin, .44,1.54,-.02,1,1,.7);
+  ownerEyeL=m(new THREE.SphereGeometry(.07,10,8),new THREE.MeshStandardMaterial({color:0x3A2010,roughness:.5}),-.16,1.60,.36);
+  ownerEyeR=m(new THREE.SphereGeometry(.07,10,8),new THREE.MeshStandardMaterial({color:0x3A2010,roughness:.5}), .16,1.60,.36);
+  m(new THREE.SphereGeometry(.04,8,6),dk,-.16,1.60,.41);m(new THREE.SphereGeometry(.04,8,6),dk,.16,1.60,.41);
+  m(new THREE.BoxGeometry(.18,.055,.04),brn,-.16,1.72,.38,1,1,1,-.1,.05);
+  m(new THREE.BoxGeometry(.18,.055,.04),brn, .16,1.72,.38,1,1,1,-.1,-.05);
+  m(new THREE.SphereGeometry(.08,10,8),skin,0,1.52,.42,1.1,1,.9);
+  m(new THREE.BoxGeometry(.22,.06,.06),dk,0,1.38,.4,1,1,1,.1);
+  m(new THREE.SphereGeometry(.09,8,6),brn,-.1,1.44,.41,1.8,.45,.8);
+  m(new THREE.SphereGeometry(.09,8,6),brn, .1,1.44,.41,1.8,.45,.8);
+
+  ownerArmL=new THREE.Group();
+  [new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.58,10),suit),
+   new THREE.Mesh(new THREE.CylinderGeometry(.14,.16,.5,10),skin),
+   new THREE.Mesh(new THREE.SphereGeometry(.15,10,8),skin)].forEach(function(p,i){p.position.y=[0,-.52,-.82][i];p.castShadow=true;ownerArmL.add(p);});
+  ownerArmL.position.set(-.72,.85,0);ownerArmL.rotation.z=-.5;g.add(ownerArmL);
+
+  ownerArmR=new THREE.Group();
+  [new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.58,10),suit),
+   new THREE.Mesh(new THREE.CylinderGeometry(.14,.16,.5,10),skin),
+   new THREE.Mesh(new THREE.SphereGeometry(.15,10,8),skin)].forEach(function(p,i){p.position.y=[0,-.52,-.82][i];p.castShadow=true;ownerArmR.add(p);});
+  ownerArmR.position.set(.72,.85,0);ownerArmR.rotation.z=.5;g.add(ownerArmR);
+
+  m(new THREE.CylinderGeometry(.18,.16,.5,10),new THREE.MeshStandardMaterial({color:0x1A1A2E}),-.26,.14,0);
+  m(new THREE.CylinderGeometry(.18,.16,.5,10),new THREE.MeshStandardMaterial({color:0x1A1A2E}), .26,.14,0);
+  m(new THREE.BoxGeometry(.2,.12,.34),shoe,-.26,-.11,.06);
+  m(new THREE.BoxGeometry(.2,.12,.34),shoe, .26,-.11,.06);
+
+  ownerAngerLight=new THREE.PointLight(0xFF3300,0,5);
+  ownerAngerLight.position.set(0,1.5,0);g.add(ownerAngerLight);
+
+  g.position.set(x,0,z);scene.add(g);
+  ownerGroup=g;
+  ownerPos.set(x,0,z);ownerHomePos.set(x,0,z);
+}
+
+// ═══════════════════════════════════
+//  OWNER AI
+// ═══════════════════════════════════
+function updateOwner(dt){
+  if(!ownerGroup||!gameRunning)return;
+  if(!ownerChasing&&ownerAnger>0)ownerAnger=Math.max(0,ownerAnger-2.2*dt);
+  document.getElementById('afill').style.width=ownerAnger+'%';
+  if(ownerAngerLight)ownerAngerLight.intensity=ownerChasing?(0.9+Math.sin(Date.now()*.01)*.4):(ownerAnger/100)*.6;
+  if(ownerEyeL&&ownerEyeR){
+    var ec=ownerChasing?0xFF1100:(ownerAnger>60?0xFF6600:0x3A2010);
+    ownerEyeL.material.color.setHex(ec);ownerEyeR.material.color.setHex(ec);
+    ownerEyeL.material.emissive.setHex(ownerChasing?0x880000:0x000000);
+    ownerEyeR.material.emissive.setHex(ownerChasing?0x880000:0x000000);
+  }
+  var t=Date.now()*.001;
+  if(ownerArmL&&ownerArmR){
+    var sw=ownerChasing?Math.sin(t*7)*.65:Math.sin(t*1.4)*.14;
+    ownerArmL.rotation.x=sw;ownerArmR.rotation.x=-sw;
+    ownerArmL.rotation.z=ownerChasing?(-.3+Math.sin(t*9)*.2):-.5;
+    ownerArmR.rotation.z=ownerChasing?( .3+Math.sin(t*9)*.2): .5;
+  }
+  ownerGroup.position.y=ownerChasing?Math.abs(Math.sin(t*6))*.07:Math.sin(t*.8)*.01;
+
+  var tx,tz;
+  if(ownerChasing){tx=catPos.x;tz=catPos.z;ownerSpeed=Math.min(ownerSpeed+dt*.8,3.5);}
+  else{var wp=ownerPatrol[ownerPatrolIdx]||ownerPatrol[0];if(!wp){tx=ownerHomePos.x;tz=ownerHomePos.z;}else{tx=wp.x;tz=wp.z;}ownerSpeed=1.1;ownerPatrolT+=dt;if(ownerPatrolT>4){ownerPatrolIdx=(ownerPatrolIdx+1)%ownerPatrol.length;ownerPatrolT=0;}}
+
+  var dx=tx-ownerPos.x,dz=tz-ownerPos.z,dist=Math.sqrt(dx*dx+dz*dz);
+  if(dist>.3){
+    var spd=ownerSpeed*dt;
+    ownerPos.x+=dx/dist*Math.min(spd,dist);ownerPos.z+=dz/dist*Math.min(spd,dist);
+    ownerGroup.position.x=ownerPos.x;ownerGroup.position.z=ownerPos.z;
+    ownerGroup.rotation.y=Math.atan2(dx,dz);
+  }
+  var pdist=Math.sqrt(Math.pow(catPos.x-ownerPos.x,2)+Math.pow(catPos.z-ownerPos.z,2));
+  if(ownerChasing&&pdist<OWNER_CATCH)hitPlayer();
+  if(!ownerChasing&&pdist<4.5){ownerAnger=Math.min(ownerAnger+dt*3.5,100);if(ownerAnger>=100){ownerChasing=true;ownerState='chasing';showMsg('👴 ХОЗЯИН: "ХВАТИТ!!!"',2000);}}
+}
+
+function hitPlayer(){
+  if(hitCooldown>0||!gameRunning)return;
+  hitCooldown=1.6;playerHP=Math.max(0,playerHP-1);updateHP();flashHit();
+  showMsg(HIT_P[Math.floor(Math.random()*HIT_P.length)],1500);
+  // Knockback cat
+  var dx=catPos.x-ownerPos.x,dz=catPos.z-ownerPos.z,len=Math.sqrt(dx*dx+dz*dz)||1;
+  catPos.x=Math.max(FB.minX+.5,Math.min(FB.maxX-.5,catPos.x+dx/len*2.5));
+  catPos.z=Math.max(FB.minZ+.5,Math.min(FB.maxZ-.5,catPos.z+dz/len*2.5));
+  if(playerHP<=0){gameRunning=false;document.getElementById('goTitle').textContent='ХОЗЯИН ПОБЕДИЛ!';document.getElementById('goText').textContent='Кот получил 3 удара...\nМожет не стоило его дразнить? 😅';setTimeout(function(){document.getElementById('gameover').style.display='flex';},900);}
+}
+
+// ═══════════════════════════════════
+//  PICKUPS
+// ═══════════════════════════════════
+function makePU(geoFn,col,emis,name,x,z,lbl,id){
+  var m=new THREE.Mesh(geoFn(),new THREE.MeshStandardMaterial({color:col,emissive:emis,roughness:.25,metalness:.7}));
+  m.name=name;m.position.set(x,1.05,z);m.castShadow=true;scene.add(m);
+  var lt=new THREE.PointLight(col,1.0,3.5);lt.position.set(x,1.5,z);scene.add(lt);
+  dynObjs.push({type:'bob',mesh:m,base:1.05,t:Math.random()*6});
+  dynObjs.push({type:'pulse',light:lt,base:1.0,t:Math.random()*8});
+  m.userData={interactable:true,id:id,label:lbl,action:function(){interact(id);}};interactables.push(m);
+}
+function addI(mesh,id,lbl,cb){mesh.userData={interactable:true,id:id,label:lbl,action:cb};interactables.push(mesh);}
+
+function placeGameObjects(){
+  var cx=FB.cx,cz=FB.cz,rw=FB.rw,rh=FB.rh;
+  makePU(function(){return new THREE.CylinderGeometry(.065,.065,.08,12);},0xE8C020,0x664400,'k1',cx,cz+rh*.6,'Взять медный ключ 🗝️','key1');
+  makePU(function(){return new THREE.OctahedronGeometry(.12);},0x4488FF,0x112244,'charm',cx+rw*.6,cz,'Взять успокоительное 💊','charm');
+  makePU(function(){return new THREE.CylinderGeometry(.065,.065,.08,12);},0xFFD700,0x886600,'k2',cx-rw*.65,cz-rh*.6,'Взять золотой ключ 🔑','key2');
+
+  var exMat=new THREE.MeshStandardMaterial({color:0x00FF88,emissive:0x00FF88,emissiveIntensity:.6,transparent:true,opacity:.3});
+  var exG=new THREE.Mesh(new THREE.BoxGeometry(.07,2.7,1.5),exMat);
+  exG.name='exitdoor';exG.position.set(cx+rw*.88,1.35,cz);scene.add(exG);
+  var exL=new THREE.PointLight(0x00FF88,1.1,6);exL.position.set(cx+rw*.88,2,cz);scene.add(exL);
+  dynObjs.push({type:'pulse',light:exL,base:1.1,t:5});
+  addI(exG,'exit','🚪 Выход!',function(){interact('exit');});
+
+  makeFatMan(cx-1.5,cz+rh*.35);
+  var fmH=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.3,1.3),new THREE.MeshLambertMaterial({transparent:true,opacity:0}));
+  fmH.position.set(cx-1.5,1.15,cz+rh*.35);scene.add(fmH);
+  addI(fmH,'owner','Поговорить с хозяином 👴',function(){interact('owner');});
+
+  ownerPatrol=[
+    new THREE.Vector3(cx-1.5,0,cz+rh*.35),
+    new THREE.Vector3(cx+rw*.2,0,cz+rh*.2),
+    new THREE.Vector3(cx-rw*.2,0,cz-rh*.2),
+  ];
+
+  var W=FB.maxX-FB.minX,H=FB.maxZ-FB.minZ;
+  mapScale=Math.min(80/W,80/H);mapOX=4+(88-W*mapScale)/2;mapOZ=4+(88-H*mapScale)/2;
+}
+
+// ═══════════════════════════════════
+//  INTERACTIONS
+// ═══════════════════════════════════
+function interact(id){
+  if(id==='owner'){
+    if(ownerChasing){showMsg('👴 ХОЗЯИН: "СТОЯТЬ!!!"',1500);return;}
+    if(!G.found.talked){G.found.talked=true;showMsg('Хозяин: "О, котик! Ключ светится в центре. Золотой — слева. Выход зелёный справа. И не дразни меня!!!" 👴',6500);}
+    else{var t=['Хозяин: "Ключ в центре!"','Хозяин: "Выход зелёный справа!"','Хозяин: "Чего тебе?"'];showMsg(t[Math.floor(Math.random()*t.length)],2500);}
+    ownerAnger=Math.min(ownerAnger+5,100);
+  }
+  else if(id==='key1'){if(!G.found.key1){G.found.key1=true;var o=scene.getObjectByName('k1');if(o)o.visible=false;addItem('🗝️','Медный ключ');showMsg('Медный ключ найден! 🗝️',2800);}else showMsg('Уже взято!');}
+  else if(id==='charm'){if(!G.found.charm){G.found.charm=true;var o=scene.getObjectByName('charm');if(o)o.visible=false;addItem('💊','Успокоительное');showMsg('💊 Успокоительное! Дай хозяину — нажми E рядом с ним!',3200);}else showMsg('Уже взято!');}
+  else if(id==='key2'){if(hasItem('Медный ключ')){if(!G.found.key2){G.found.key2=true;var o=scene.getObjectByName('k2');if(o)o.visible=false;addItem('🔑','Золотой ключ');showMsg('ЗОЛОТОЙ КЛЮЧ! Беги к зелёному выходу! 🏃',3000);}else showMsg('Уже взято!');}else showMsg('Сначала нужен 🗝️ Медный ключ!');}
+  else if(id==='exit'){if(hasItem('Золотой ключ')){gameRunning=false;setTimeout(function(){document.getElementById('win').style.display='flex';},500);}else showMsg('Дверь заперта! Нужен 🔑 Золотой ключ.');}
+}
+
+function doInteract(){
+  // Give charm to owner
+  var pd=Math.sqrt(Math.pow(catPos.x-ownerPos.x,2)+Math.pow(catPos.z-ownerPos.z,2));
+  if(pd<2.5&&hasItem('Успокоительное')){removeItem('Успокоительное');ownerAnger=0;ownerState='idle';ownerChasing=false;ownerSpeed=1.2;showMsg('💊 Хозяин получил успокоительное! 😮‍💨',3000);return;}
+  if(targetObj&&targetObj.userData.action)targetObj.userData.action();
+}
+
+function doTease(){
+  var phrase=TEASES[teaseCount%TEASES.length];teaseCount++;showMsg(phrase,2000);
+  var pd=Math.sqrt(Math.pow(catPos.x-ownerPos.x,2)+Math.pow(catPos.z-ownerPos.z,2));
+  ownerAnger=Math.min(100,ownerAnger+(pd<4?32:pd<8?18:6));
+  if(ownerAnger>=65&&!ownerChasing){ownerState='angry';setTimeout(function(){if(ownerState==='angry'){showMsg(ANGRY_P[Math.floor(Math.random()*ANGRY_P.length)],2000);ownerState='chasing';ownerChasing=true;ownerSpeed=3.2;}},500);}
+  else if(!ownerChasing)showMsg('👴 Хозяин: "...что ты сказал..."',1500);
+}
+
+// ═══════════════════════════════════
+//  RAYCAST (from cat toward look)
+// ═══════════════════════════════════
+function updateRC(){
+  if(!raycaster||!camera)return;
+  // Cast from cat toward camera view direction
+  var camDir=new THREE.Vector3();camera.getWorldDirection(camDir);
+  raycaster.set(new THREE.Vector3(catPos.x,.6,catPos.z),camDir);
+  var hits=raycaster.intersectObjects(interactables,false);
+  var ab=document.getElementById('actbtn'),tb=document.getElementById('teasebtn');
+  tb.classList.add('vis');
+  if(hits.length>0&&hits[0].distance<INTERACT_D){
+    var obj=hits[0].object;
+    if(obj.userData.interactable){
+      targetObj=obj;
+      document.getElementById('actlbl').textContent=obj.userData.label||'Действие';
+      ab.classList.toggle('dm',obj.userData.id==='owner');
+      ab.classList.add('vis');return;
+    }
+  }
+  // Also check plain distance to items (for 3rd person)
+  var closest=null,closestD=INTERACT_D;
+  for(var i=0;i<interactables.length;i++){
+    var it=interactables[i];
+    var d=catPos.distanceTo(it.position);
+    if(d<closestD){closestD=d;closest=it;}
+  }
+  if(closest){targetObj=closest;document.getElementById('actlbl').textContent=closest.userData.label||'Действие';ab.classList.toggle('dm',closest.userData.id==='owner');ab.classList.add('vis');}
+  else{targetObj=null;ab.classList.remove('vis','dm');}
+}
+
+// ═══════════════════════════════════
+//  MINIMAP
+// ═══════════════════════════════════
+function drawMinimap(){
+  var mc=document.getElementById('mmc'),ctx=mc.getContext('2d');
+  ctx.clearRect(0,0,88,88);ctx.fillStyle='rgba(7,4,16,.86)';ctx.fillRect(0,0,88,88);
+  ctx.strokeStyle='rgba(100,70,28,.35)';ctx.lineWidth=1.5;
+  var W=FB.maxX-FB.minX,H=FB.maxZ-FB.minZ;ctx.strokeRect(mapOX-2,mapOZ-2,W*mapScale+4,H*mapScale+4);
+  function tm(wx,wz){return[(wx-FB.minX)*mapScale+mapOX,(wz-FB.minZ)*mapScale+mapOZ];}
+  [['k1','#E8C020'],['charm','#4488FF'],['k2','#FFD700'],['exitdoor','#00FF88']].forEach(function(p){var o=scene.getObjectByName(p[0]);if(o&&o.visible){var c=tm(o.position.x,o.position.z);ctx.fillStyle=p[1];ctx.beginPath();ctx.arc(c[0],c[1],2.5,0,Math.PI*2);ctx.fill();}});
+  // Owner
+  var oc=tm(ownerPos.x,ownerPos.z);ctx.fillStyle=ownerChasing?'#FF3300':'#FF8800';ctx.beginPath();ctx.arc(oc[0],oc[1],5,0,Math.PI*2);ctx.fill();
+  // Cat
+  var pc=tm(catPos.x,catPos.z);ctx.fillStyle='#E8843A';ctx.beginPath();ctx.arc(pc[0],pc[1],4,0,Math.PI*2);ctx.fill();
+  // Direction arrow
+  ctx.strokeStyle='#F5F0E8';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pc[0],pc[1]);ctx.lineTo(pc[0]+Math.sin(-catFaceYaw)*9,pc[1]+Math.cos(-catFaceYaw)*9);ctx.stroke();
+}
+
+// ═══════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════
+function loop(){
+  requestAnimationFrame(loop);
+  if(!engineReady)return;
+  var dt=Math.min(clock.getDelta(),.05);
+  if(hitCooldown>0)hitCooldown-=dt;
+  if(gameRunning){
+    tryMove(dt);
+    updateCat(dt);
+    updateCamera();
+    updateDyn(dt);
+    updateOwner(dt);
+    updateRC();
+    drawMinimap();
+  }
+  if(renderer&&scene&&camera)renderer.render(scene,camera);
+}
+
+function updateDyn(dt){
+  for(var i=0;i<dynObjs.length;i++){
+    var d=dynObjs[i];d.t+=dt;
+    if(d.type==='bob'&&d.mesh&&d.mesh.visible){d.mesh.position.y=d.base+Math.sin(d.t*2.2)*.06;d.mesh.rotation.y+=dt*1.4;}
+    else if(d.type==='pulse'&&d.light){d.light.intensity=d.base+Math.sin(d.t*4.5+d.base)*.3+Math.cos(d.t*8)*.15;}
+  }
+}
+
+// ═══════════════════════════════════
+//  ENGINE INIT
+// ═══════════════════════════════════
+function initEngine(){
+  var canvas=document.getElementById('c');
+  renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x0A0906);scene.fog=new THREE.FogExp2(0x0A0906,.038);
+  camera=new THREE.PerspectiveCamera(65,window.innerWidth/window.innerHeight,.05,200);
+  raycaster=new THREE.Raycaster();clock=new THREE.Clock();initColRay();
+  scene.add(new THREE.AmbientLight(0xCCBB99,.55));
+  scene.add(new THREE.HemisphereLight(0xFFEECC,0x2A1A08,.6));
+  var sun=new THREE.DirectionalLight(0xFFE8C0,.9);
+  sun.position.set(12,20,10);sun.castShadow=true;
+  sun.shadow.mapSize.width=sun.shadow.mapSize.height=2048;
+  sun.shadow.camera.left=-40;sun.shadow.camera.right=40;sun.shadow.camera.top=40;sun.shadow.camera.bottom=-40;
+  sun.shadow.camera.near=.1;sun.shadow.camera.far=120;scene.add(sun);
+  engineReady=true;loop();
+}
+
+// ═══════════════════════════════════
+//  LOAD FLOORPLAN
+// ═══════════════════════════════════
+function loadFloorplan(){
+  setStep('Загрузка планировки...',40);
+  var loader=new THREE.GLTFLoader();
+  try{var draco=new THREE.DRACOLoader();draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');loader.setDRACOLoader(draco);}catch(e){}
+  loader.load('floorplan.glb',
+    function(gltf){
+      setStep('Обработка...',70);
+      var model=gltf.scene;
+      var rawBox=new THREE.Box3().setFromObject(model);
+      var rawSize=new THREE.Vector3();rawBox.getSize(rawSize);
+      var rawCenter=new THREE.Vector3();rawBox.getCenter(rawCenter);
+      var scale=28/Math.max(rawSize.x,rawSize.z);
+      model.scale.setScalar(scale);
+      model.position.x=-rawCenter.x*scale;model.position.z=-rawCenter.z*scale;
+      model.position.y=-rawBox.min.y*scale;
+      model.traverse(function(o){
+        if(!o.isMesh)return;
+        o.castShadow=true;o.receiveShadow=true;wallMeshes.push(o);
+        var mats=Array.isArray(o.material)?o.material:[o.material];
+        mats.forEach(function(mat){if(mat.color)mat.color.multiplyScalar(.82);mat.needsUpdate=true;});
+      });
+      scene.add(model);
+      var wb=new THREE.Box3().setFromObject(model);
+      FB.minX=wb.min.x+.6;FB.maxX=wb.max.x-.6;FB.minZ=wb.min.z+.6;FB.maxZ=wb.max.z-.6;
+      FB.cx=(FB.minX+FB.maxX)/2;FB.cz=(FB.minZ+FB.maxZ)/2;
+      FB.rw=(FB.maxX-FB.minX)*.44;FB.rh=(FB.maxZ-FB.minZ)*.44;
+      setStep('Размещение...',85);
+      placeGameObjects();
+      buildCat(FB.cx,FB.cz+FB.rh*.5);
+      camera.position.set(FB.cx,CAM_DIST*.8,FB.cz+FB.rh*.5+CAM_DIST);
+      camYaw=Math.PI;camPitch=.38;
+      catTarget.set(FB.cx,.55,FB.cz+FB.rh*.5);
+      finishLoad();
+    },
+    function(p){if(p.total)setStep('Планировка '+Math.round(p.loaded/p.total*100)+'%...',40+p.loaded/p.total*28);},
+    function(e){console.warn('GLB fail',e);buildFallback();}
+  );
+}
+
+function buildFallback(){
+  var wm=new THREE.MeshLambertMaterial({color:0x3E2810}),R=24;
+  var fl=new THREE.Mesh(new THREE.BoxGeometry(R,.15,R),new THREE.MeshLambertMaterial({color:0x4A3218}));fl.position.y=-.07;fl.receiveShadow=true;scene.add(fl);
+  [[R,4,.2,0,2,-R/2],[R,4,.2,0,2,R/2],[.2,4,R,-R/2,2,0],[.2,4,R,R/2,2,0]].forEach(function(a){var m=new THREE.Mesh(new THREE.BoxGeometry(a[0],a[1],a[2]),wm);m.position.set(a[3],a[4],a[5]);m.receiveShadow=true;scene.add(m);wallMeshes.push(m);});
+  FB={minX:-11,maxX:11,minZ:-11,maxZ:11,cx:0,cz:0,rw:9,rh:9};
+  placeGameObjects();buildCat(0,7);
+  camera.position.set(0,CAM_DIST*.8,7+CAM_DIST);camYaw=Math.PI;camPitch=.38;
+  catTarget.set(0,.55,7);finishLoad();
+}
+
+function finishLoad(){
+  setStep('Готово! 🐱',100);
+  setTimeout(function(){
+    document.getElementById('loading').style.display='none';
+    ['rlabel','angerbar','hpbar','minimap'].forEach(function(id){var el=document.getElementById(id);el.style.display=(id==='angerbar'||id==='hpbar')?'flex':'block';});
+    document.getElementById('invbar').style.display='flex';
+    document.getElementById('joypad').style.display='block';
+    document.getElementById('btns').style.display='flex';
+    document.getElementById('teasebtn').classList.add('vis');
+    document.getElementById('lookzone').style.display='block';
+    document.getElementById('lookzone').style.pointerEvents='all';
+    updateHP();gameRunning=true;
+  },500);
+}
+
+// ═══════════════════════════════════
+//  SCRIPTS LOADER
+// ═══════════════════════════════════
+function loadScript(url,ok,fail){var s=document.createElement('script');s.src=url;s.onload=ok;s.onerror=fail||ok;document.head.appendChild(s);}
+function startGame(){
+  document.getElementById('start').style.display='none';
+  setStep('Загрузка...',10);
+  loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js',function(){
+    setStep('DRACOLoader...',20);
+    loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js',function(){
+      setStep('Инициализация...',30);initEngine();loadFloorplan();
+    });
+  });
+}
+
+// ═══════════════════════════════════
+//  INPUT — Joystick moves CAT, look zone orbits camera
+// ═══════════════════════════════════
+var joyEl=document.getElementById('joypad'),joyKnob=document.getElementById('joy-knob'),lookEl=document.getElementById('lookzone');
+
+joyEl.addEventListener('touchstart',function(e){e.preventDefault();var t=e.changedTouches[0];joyTouchId=t.identifier;var r=joyEl.getBoundingClientRect();joyOrigin={x:r.left+r.width/2,y:r.top+r.height/2};},{passive:false});
+joyEl.addEventListener('touchmove',function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++){var t=e.changedTouches[i];if(t.identifier!==joyTouchId)continue;var dx=t.clientX-joyOrigin.x,dy=t.clientY-joyOrigin.y,d=Math.min(Math.sqrt(dx*dx+dy*dy),44),a=Math.atan2(dy,dx);joyKnob.style.transform='translate(calc(-50% + '+Math.cos(a)*d+'px),calc(-50% + '+Math.sin(a)*d+'px))';joyVec.x=Math.cos(a)*d/44;joyVec.y=Math.sin(a)*d/44;}},{passive:false});
+joyEl.addEventListener('touchend',function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++){var t=e.changedTouches[i];if(t.identifier!==joyTouchId)continue;joyTouchId=null;joyKnob.style.transform='translate(-50%,-50%)';joyVec.x=0;joyVec.y=0;}},{passive:false});
+
+// Look zone: drag to orbit camera around cat
+lookEl.addEventListener('touchstart',function(e){e.preventDefault();var t=e.changedTouches[0];lookTouchId=t.identifier;lookLast={x:t.clientX,y:t.clientY};},{passive:false});
+lookEl.addEventListener('touchmove',function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++){var t=e.changedTouches[i];if(t.identifier!==lookTouchId)continue;camYaw-=(t.clientX-lookLast.x)*SENS;camPitch-=(t.clientY-lookLast.y)*SENS*.5;camPitch=Math.max(.12,Math.min(1.3,camPitch));lookLast={x:t.clientX,y:t.clientY};}},{passive:false});
+lookEl.addEventListener('touchend',function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++){if(e.changedTouches[i].identifier===lookTouchId)lookTouchId=null;}if(targetObj&&targetObj.userData.action)targetObj.userData.action();},{passive:false});
+
+// Pinch to zoom
+var pinchDist=0;
+document.addEventListener('touchstart',function(e){if(e.touches.length===2){pinchDist=Math.hypot(e.touches[1].clientX-e.touches[0].clientX,e.touches[1].clientY-e.touches[0].clientY);}},{passive:true});
+document.addEventListener('touchmove',function(e){if(e.touches.length===2){var d=Math.hypot(e.touches[1].clientX-e.touches[0].clientX,e.touches[1].clientY-e.touches[0].clientY);CAM_DIST=Math.max(2,Math.min(8,CAM_DIST*(pinchDist/d)));pinchDist=d;}},{passive:true});
+
+var keys={};
+window.addEventListener('keydown',function(e){keys[e.code]=true;if(e.code==='KeyE')doInteract();if(e.code==='KeyQ')doTease();});
+window.addEventListener('keyup',function(e){keys[e.code]=false;});
+setInterval(function(){if(!engineReady)return;joyVec.x=(keys['KeyD']||keys['ArrowRight']?1:0)-(keys['KeyA']||keys['ArrowLeft']?1:0);joyVec.y=(keys['KeyS']||keys['ArrowDown']?1:0)-(keys['KeyW']||keys['ArrowUp']?1:0);},16);
+
+// Mouse orbit (desktop)
+var mDown=false,mLast={x:0,y:0};
+document.addEventListener('mousedown',function(e){if(e.button===0&&e.target.id==='c'){mDown=true;mLast={x:e.clientX,y:e.clientY};}});
+document.addEventListener('mouseup',function(){mDown=false;});
+document.addEventListener('mousemove',function(e){if(!mDown)return;camYaw-=(e.clientX-mLast.x)*SENS;camPitch-=(e.clientY-mLast.y)*SENS*.5;camPitch=Math.max(.12,Math.min(1.3,camPitch));mLast={x:e.clientX,y:e.clientY};});
+document.addEventListener('wheel',function(e){CAM_DIST=Math.max(2,Math.min(8,CAM_DIST*(1+e.deltaY*.001)));});
+document.addEventListener('click',function(e){if(e.target.id==='c'&&targetObj)doInteract();});
+window.addEventListener('resize',function(){if(!renderer||!camera)return;camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+</script>
+</body>
+</html>
